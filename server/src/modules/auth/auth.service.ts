@@ -46,7 +46,7 @@ export class AuthService {
 
     if (!user) {
       // Timing-safe: still verify to prevent enumeration
-      await argon2.verify('$argon2id$v=19$m=65536,t=3,p=4$fake', 'fake');
+      await argon2.verify('$argon2id$v=19$m=65536,t=3,p=4$S6M/uWkUismYCpULs/05Xg$dKnnRGZ/ygQLxJM7bDBEdpSrycD1V/LXTjwIHDYNYhk', 'fake').catch(() => {});
       throw new UnauthorizedException('Invalid email or password');
     }
 

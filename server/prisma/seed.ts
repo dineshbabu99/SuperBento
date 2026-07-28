@@ -309,6 +309,7 @@ async function main() {
       branchId: branch.id,
       status: 'ACTIVE',
       isEmailVerified: true,
+      phoneNumber: '+919999999991',
     },
   });
 
@@ -361,6 +362,7 @@ async function main() {
       branchId: branch.id,
       status: 'ACTIVE',
       isEmailVerified: true,
+      phoneNumber: '+919999999992',
     },
   });
 
@@ -376,6 +378,7 @@ async function main() {
       branchId: branch.id,
       status: 'ACTIVE',
       isEmailVerified: true,
+      phoneNumber: '+919999999993',
     },
   });
 
