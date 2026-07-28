@@ -227,7 +227,7 @@ model User {
 model RefreshToken {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   userId      String    @db.ObjectId
-  tokenFamily String    @db.ObjectId // Used for rotation attack detection
+  tokenFamily String    // Used for rotation attack detection
   tokenHash   String // Stored hashed, never plain
   expiresAt   DateTime
   isRevoked   Boolean   @default(false)
