@@ -36,7 +36,7 @@ export class AuthService {
   // ─── LOGIN ────────────────────────────────────────────
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const user = await this.prisma.user.findFirst({
-      where: { email: dto.email.toLowerCase(), deletedAt: null },
+      where: { email: dto.email.toLowerCase() },
       include: {
         role: {
           include: { permissions: { include: { permission: true } } },
@@ -50,7 +50,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE' || user.deletedAt) {
       throw new UnauthorizedException('Your account has been deactivated. Contact your administrator.');
     }
 
