@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsMongoId } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StockMovementType } from '@prisma/client';
 
@@ -18,6 +18,6 @@ export class AdjustStockDto {
 
   @ApiPropertyOptional({ example: 'uuid-reference' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   referenceId?: string;
 }

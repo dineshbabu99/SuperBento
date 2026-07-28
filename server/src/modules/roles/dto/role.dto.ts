@@ -3,7 +3,7 @@ import {
   IsOptional,
   IsBoolean,
   IsArray,
-  IsUUID,
+  IsMongoId,
   MaxLength,
   MinLength,
   Matches,
@@ -36,6 +36,6 @@ export class UpdateRoleDto extends PartialType(CreateRoleDto) {}
 export class UpdateRolePermissionsDto {
   @ApiProperty({ type: [String], description: 'Array of permission IDs' })
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsMongoId({ each: true })
   permissionIds: string[];
 }

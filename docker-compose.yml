@@ -2,26 +2,20 @@ version: '3.9'
 
 services:
   # ─────────────────────────────────────────
-  # PostgreSQL Database
+  # MongoDB Database
   # ─────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: superbento_postgres
+  mongo:
+    image: mongo:6
+    container_name: superbento_mongo
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-superbento}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superbento_secret}
-      POSTGRES_DB: ${POSTGRES_DB:-superbento_erp}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-superbento}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-superbento_secret}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-superbento_erp}
     ports:
-      - '5432:5432'
+      - '27017:27017'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./server/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-superbento}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - mongo_data:/data/db
     networks:
       - superbento_network
 
@@ -46,23 +40,22 @@ services:
       - superbento_network
 
   # ─────────────────────────────────────────
-  # pgAdmin (DB Management UI)
+  # Mongo Express (DB Management UI)
   # ─────────────────────────────────────────
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: superbento_pgadmin
+  mongo-express:
+    image: mongo-express
+    container_name: superbento_mongo_express
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@superbento.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-superbento}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-superbento_secret}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER:-superbento}:${MONGO_PASSWORD:-superbento_secret}@mongo:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_PASSWORD:-admin123}
     ports:
-      - '5050:80'
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - '8081:8081'
     depends_on:
-      postgres:
-        condition: service_healthy
+      - mongo
     networks:
       - superbento_network
     profiles:
@@ -80,7 +73,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://${POSTGRES_USER:-superbento}:${POSTGRES_PASSWORD:-superbento_secret}@postgres:5432/${POSTGRES_DB:-superbento_erp}
+      DATABASE_URL: mongodb://${MONGO_USER:-superbento}:${MONGO_PASSWORD:-superbento_secret}@mongo:27017/${MONGO_DB:-superbento_erp}?authSource=admin
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_access_secret_min_32_chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh_secret_min_32_chars}
@@ -94,8 +87,8 @@ services:
       - ./server:/app
       - /app/node_modules
     depends_on:
-      postgres:
-        condition: service_healthy
+      mongo:
+        condition: service_started
       redis:
         condition: service_healthy
     networks:
@@ -129,9 +122,8 @@ services:
       - full
 
 volumes:
-  postgres_data:
+  mongo_data:
   redis_data:
-  pgadmin_data:
 
 networks:
   superbento_network:

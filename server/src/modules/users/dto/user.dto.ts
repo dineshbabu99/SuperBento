@@ -2,7 +2,7 @@ import {
   IsEmail,
   IsString,
   IsOptional,
-  IsUUID,
+  IsMongoId,
   IsBoolean,
   MinLength,
   MaxLength,
@@ -46,12 +46,12 @@ export class CreateUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   roleId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   branchId?: string;
 }
 
@@ -69,7 +69,7 @@ export class UpdateUserDto extends PartialType(OmitType(CreateUserDto, ['passwor
 
 export class AssignRoleDto {
   @ApiProperty()
-  @IsUUID()
+  @IsMongoId()
   roleId: string;
 }
 
@@ -81,11 +81,11 @@ export class UserFilterDto extends PaginationDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   roleId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   branchId?: string;
 }

@@ -1,9 +1,9 @@
-import { IsUUID, IsNumber, IsString, Min } from 'class-validator';
+import { IsMongoId, IsNumber, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AddPoItemDto {
   @ApiProperty({ example: 'uuid-of-ingredient' })
-  @IsUUID()
+  @IsMongoId()
   ingredientId: string;
 
   @ApiProperty({ example: 50 })

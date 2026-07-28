@@ -1,19 +1,13 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const connectionString = process.env.DATABASE_URL;
-    const pool = new Pool({ connectionString });
-    const adapter = new PrismaPg(pool);
-
     super({
-      adapter,
       log: [
         { emit: 'event', level: 'query' },
         { emit: 'stdout', level: 'error' },
@@ -78,13 +72,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     if (process.env.NODE_ENV !== 'test') {
       throw new Error('cleanDatabase is only allowed in test environment');
     }
-    const tableNames = await this.$queryRaw<Array<{ tablename: string }>>`
-      SELECT tablename FROM pg_tables WHERE schemaname='public'
-    `;
-    for (const { tablename } of tableNames) {
-      if (tablename !== '_prisma_migrations') {
-        await this.$executeRawUnsafe(`TRUNCATE TABLE "public"."${tablename}" CASCADE;`);
-      }
-    }
+    // Delete all documents from all collections.
+    // Replace with specific deleteMany() calls for each model if you want to keep collections intact.
+    await this.$runCommandRaw({ dropDatabase: 1 });
   }
 }

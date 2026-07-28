@@ -1,14 +1,14 @@
-import { IsUUID, IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsMongoId, IsOptional, IsString, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePurchaseOrderDto {
   @ApiProperty({ example: 'uuid-of-supplier' })
-  @IsUUID()
+  @IsMongoId()
   supplierId: string;
 
   @ApiPropertyOptional({ example: 'uuid-of-branch' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   branchId?: string;
 
   @ApiPropertyOptional({ example: '2026-08-01' })

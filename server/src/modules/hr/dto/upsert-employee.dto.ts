@@ -1,9 +1,9 @@
-import { IsString, IsNumber, IsUUID, IsDateString, IsOptional, Min } from 'class-validator';
+import { IsString, IsNumber, IsMongoId, IsDateString, IsOptional, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpsertEmployeeDto {
   @ApiProperty({ example: 'uuid-of-user' })
-  @IsUUID()
+  @IsMongoId()
   userId: string;
 
   @ApiProperty({ example: 'Delivery Executive' })

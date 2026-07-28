@@ -1,4 +1,4 @@
-import { IsUUID, IsOptional, IsString, IsDateString, IsArray, ValidateNested, IsNumber, IsInt } from 'class-validator';
+import { IsMongoId, IsOptional, IsString, IsDateString, IsArray, ValidateNested, IsNumber, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -25,17 +25,17 @@ export class DeliveryStopDto {
 export class CreateDeliveryBatchDto {
   @ApiPropertyOptional({ example: 'uuid-of-daily-menu' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   dailyMenuId?: string;
 
   @ApiPropertyOptional({ example: 'uuid-of-branch' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   branchId?: string;
 
   @ApiPropertyOptional({ example: 'uuid-of-delivery-agent' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   assignedToId?: string;
 
   @ApiPropertyOptional({ example: '2026-07-27T08:00:00Z' })

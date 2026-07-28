@@ -1,14 +1,14 @@
-import { IsString, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsMongoId, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateInventoryItemDto {
   @ApiProperty({ example: 'uuid-of-ingredient' })
-  @IsUUID()
+  @IsMongoId()
   ingredientId: string;
 
   @ApiPropertyOptional({ example: 'uuid-of-branch' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   branchId?: string;
 
   @ApiPropertyOptional({ example: 100 })

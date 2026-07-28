@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
 }
 
 // ─────────────────────────────────────────────────────────
@@ -93,21 +93,21 @@ enum DeliveryStatus {
 // ─────────────────────────────────────────────────────────
 
 model Branch {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @db.VarChar(200)
-  code      String    @unique @db.VarChar(50)
-  address   String?   @db.Text
-  city      String?   @db.VarChar(100)
-  state     String?   @db.VarChar(100)
-  pincode   String?   @db.VarChar(10)
-  phone     String?   @db.VarChar(20)
-  email     String?   @db.VarChar(255)
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  code      String    @unique
+  address   String?
+  city      String?
+  state     String?
+  pincode   String?
+  phone     String?
+  email     String?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  createdBy String?   @db.Uuid
-  updatedBy String?   @db.Uuid
+  createdBy String?   @db.ObjectId
+  updatedBy String?   @db.ObjectId
 
   users           User[]
   dailyMenus      DailyMenu[]
@@ -123,11 +123,11 @@ model Branch {
 // ─────────────────────────────────────────────────────────
 
 model Permission {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique @db.VarChar(200) // e.g. "users:read"
-  module      String   @db.VarChar(100) // e.g. "users"
-  action      String   @db.VarChar(100) // e.g. "read"
-  description String?  @db.Text
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique // e.g. "users:read"
+  module      String // e.g. "users"
+  action      String // e.g. "read"
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -142,17 +142,17 @@ model Permission {
 // ─────────────────────────────────────────────────────────
 
 model Role {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String    @unique @db.VarChar(100)
-  slug        String    @unique @db.VarChar(100)
-  description String?   @db.Text
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String    @unique
+  slug        String    @unique
+  description String?
   isSystem    Boolean   @default(false)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
-  createdBy   String?   @db.Uuid
-  updatedBy   String?   @db.Uuid
+  createdBy   String?   @db.ObjectId
+  updatedBy   String?   @db.ObjectId
 
   users       User[]
   permissions RolePermission[]
@@ -165,13 +165,14 @@ model Role {
 // ─────────────────────────────────────────────────────────
 
 model RolePermission {
-  roleId       String @db.Uuid
-  permissionId String @db.Uuid
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  roleId       String @db.ObjectId
+  permissionId String @db.ObjectId
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([roleId, permissionId])
+  @@unique([roleId, permissionId])
   @@map("role_permissions")
 }
 
@@ -180,23 +181,23 @@ model RolePermission {
 // ─────────────────────────────────────────────────────────
 
 model User {
-  id              String     @id @default(uuid()) @db.Uuid
-  email           String     @unique @db.VarChar(255)
-  phoneNumber     String?    @unique @db.VarChar(20)
-  passwordHash    String     @db.Text
-  firstName       String     @db.VarChar(100)
-  lastName        String     @db.VarChar(100)
-  avatarUrl       String?    @db.Text
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  email           String     @unique
+  phoneNumber     String?    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  avatarUrl       String?
   status          UserStatus @default(ACTIVE)
   isEmailVerified Boolean    @default(false)
   lastLoginAt     DateTime?
-  roleId          String?    @db.Uuid
-  branchId        String?    @db.Uuid
+  roleId          String?    @db.ObjectId
+  branchId        String?    @db.ObjectId
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   deletedAt       DateTime?
-  createdBy       String?    @db.Uuid
-  updatedBy       String?    @db.Uuid
+  createdBy       String?    @db.ObjectId
+  updatedBy       String?    @db.ObjectId
 
   role              Role?                @relation(fields: [roleId], references: [id])
   branch            Branch?              @relation(fields: [branchId], references: [id])
@@ -212,7 +213,6 @@ model User {
   employeeProfile   EmployeeProfile?
   transactions      Transaction[]        @relation("TransactionPerformer")
 
-  @@index([email])
   @@index([roleId])
   @@index([status])
   @@index([deletedAt])
@@ -224,15 +224,15 @@ model User {
 // ─────────────────────────────────────────────────────────
 
 model RefreshToken {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @db.Uuid
-  tokenFamily String    @db.Uuid // Used for rotation attack detection
-  tokenHash   String    @db.Text // Stored hashed, never plain
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  tokenFamily String    @db.ObjectId // Used for rotation attack detection
+  tokenHash   String // Stored hashed, never plain
   expiresAt   DateTime
   isRevoked   Boolean   @default(false)
   revokedAt   DateTime?
-  ipAddress   String?   @db.VarChar(50)
-  userAgent   String?   @db.Text
+  ipAddress   String?
+  userAgent   String?
   createdAt   DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -247,9 +247,9 @@ model RefreshToken {
 // ─────────────────────────────────────────────────────────
 
 model PasswordResetToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  tokenHash String    @db.Text
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  tokenHash String
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
@@ -265,16 +265,16 @@ model PasswordResetToken {
 // ─────────────────────────────────────────────────────────
 
 model Notification {
-  id         String           @id @default(uuid()) @db.Uuid
-  userId     String           @db.Uuid
-  title      String           @db.VarChar(255)
-  message    String           @db.Text
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String           @db.ObjectId
+  title      String
+  message    String
   type       NotificationType @default(INFO)
   isRead     Boolean          @default(false)
   readAt     DateTime?
-  entityType String?          @db.VarChar(100)
-  entityId   String?          @db.Uuid
-  actionUrl  String?          @db.Text
+  entityType String?
+  entityId   String?          @db.ObjectId
+  actionUrl  String?
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
@@ -291,15 +291,15 @@ model Notification {
 // ─────────────────────────────────────────────────────────
 
 model AuditLog {
-  id        String      @id @default(uuid()) @db.Uuid
-  userId    String?     @db.Uuid
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?     @db.ObjectId
   action    AuditAction
-  entity    String      @db.VarChar(100)
-  entityId  String?     @db.Uuid
+  entity    String
+  entityId  String?     @db.ObjectId
   oldValues Json?
   newValues Json?
-  ipAddress String?     @db.VarChar(50)
-  userAgent String?     @db.Text
+  ipAddress String?
+  userAgent String?
   metadata  Json?
   createdAt DateTime    @default(now())
 
@@ -318,16 +318,16 @@ model AuditLog {
 // ─────────────────────────────────────────────────────────
 
 model Ingredient {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String    @db.VarChar(200)
-  unit        String    @db.VarChar(50) // e.g. kg, g, L, pcs
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  unit        String // e.g. kg, g, L, pcs
   defaultCost Float?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  recipes          RecipeIngredient[]
-  inventoryItems   InventoryItem[]
+  recipes            RecipeIngredient[]
+  inventoryItems     InventoryItem[]
   purchaseOrderItems PurchaseOrderItem[]
 
   @@map("ingredients")
@@ -338,13 +338,13 @@ model Ingredient {
 // ─────────────────────────────────────────────────────────
 
 model Recipe {
-  id              String    @id @default(uuid()) @db.Uuid
-  name            String    @db.VarChar(200)
-  description     String?   @db.Text
-  instructions    String?   @db.Text
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  description     String?
+  instructions    String?
   prepTimeMinutes Int?
   cookTimeMinutes Int?
-  category        String?   @db.VarChar(100)
+  category        String?
   nutritionalInfo Json?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -361,15 +361,16 @@ model Recipe {
 // ─────────────────────────────────────────────────────────
 
 model RecipeIngredient {
-  recipeId     String @db.Uuid
-  ingredientId String @db.Uuid
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  recipeId     String @db.ObjectId
+  ingredientId String @db.ObjectId
   quantity     Float
-  unit         String @db.VarChar(50)
+  unit         String
 
   recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
-  @@id([recipeId, ingredientId])
+  @@unique([recipeId, ingredientId])
   @@map("recipe_ingredients")
 }
 
@@ -378,9 +379,9 @@ model RecipeIngredient {
 // ─────────────────────────────────────────────────────────
 
 model DailyMenu {
-  id        String     @id @default(uuid()) @db.Uuid
-  date      DateTime   @db.Date
-  branchId  String?    @db.Uuid
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  date      DateTime
+  branchId  String?    @db.ObjectId
   status    MenuStatus @default(DRAFT)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -400,9 +401,9 @@ model DailyMenu {
 // ─────────────────────────────────────────────────────────
 
 model MenuItem {
-  id             String   @id @default(uuid()) @db.Uuid
-  dailyMenuId    String   @db.Uuid
-  recipeId       String   @db.Uuid
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  dailyMenuId    String   @db.ObjectId
+  recipeId       String   @db.ObjectId
   mealType       MealType
   targetQuantity Int      @default(0)
   createdAt      DateTime @default(now())
@@ -420,10 +421,10 @@ model MenuItem {
 // ─────────────────────────────────────────────────────────
 
 model PrepTask {
-  id           String         @id @default(uuid()) @db.Uuid
-  dailyMenuId  String         @db.Uuid
-  assignedToId String?        @db.Uuid
-  taskName     String         @db.VarChar(255)
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  dailyMenuId  String         @db.ObjectId
+  assignedToId String?        @db.ObjectId
+  taskName     String
   status       PrepTaskStatus @default(TODO)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -441,13 +442,13 @@ model PrepTask {
 // ─────────────────────────────────────────────────────────
 
 model Supplier {
-  id            String    @id @default(uuid()) @db.Uuid
-  name          String    @db.VarChar(200)
-  contactPerson String?   @db.VarChar(200)
-  phone         String?   @db.VarChar(20)
-  email         String?   @db.VarChar(255)
-  address       String?   @db.Text
-  gstin         String?   @db.VarChar(20)
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  gstin         String?
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -463,15 +464,15 @@ model Supplier {
 // ─────────────────────────────────────────────────────────
 
 model InventoryItem {
-  id            String    @id @default(uuid()) @db.Uuid
-  ingredientId  String    @db.Uuid
-  branchId      String?   @db.Uuid
-  currentStock  Float     @default(0)
-  minStockLevel Float     @default(0)
-  unit          String    @db.VarChar(50)
-  lastUpdatedAt DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  ingredientId  String   @db.ObjectId
+  branchId      String?  @db.ObjectId
+  currentStock  Float    @default(0)
+  minStockLevel Float    @default(0)
+  unit          String
+  lastUpdatedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   ingredient Ingredient      @relation(fields: [ingredientId], references: [id])
   branch     Branch?         @relation(fields: [branchId], references: [id])
@@ -484,13 +485,13 @@ model InventoryItem {
 }
 
 model StockMovement {
-  id              String            @id @default(uuid()) @db.Uuid
-  inventoryItemId String            @db.Uuid
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  inventoryItemId String            @db.ObjectId
   type            StockMovementType
   quantity        Float
-  note            String?           @db.Text
-  referenceId     String?           @db.Uuid
-  performedById   String?           @db.Uuid
+  note            String?
+  referenceId     String?           @db.ObjectId
+  performedById   String?           @db.ObjectId
   createdAt       DateTime          @default(now())
 
   inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
@@ -507,24 +508,24 @@ model StockMovement {
 // ─────────────────────────────────────────────────────────
 
 model PurchaseOrder {
-  id                   String              @id @default(uuid()) @db.Uuid
-  poNumber             String              @unique @db.VarChar(50)
-  supplierId           String              @db.Uuid
-  branchId             String?             @db.Uuid
+  id                   String              @id @default(auto()) @map("_id") @db.ObjectId
+  poNumber             String              @unique
+  supplierId           String              @db.ObjectId
+  branchId             String?             @db.ObjectId
   status               PurchaseOrderStatus @default(DRAFT)
-  expectedDeliveryDate DateTime?           @db.Date
+  expectedDeliveryDate DateTime?
   totalAmount          Float               @default(0)
-  notes                String?             @db.Text
-  approvedById         String?             @db.Uuid
+  notes                String?
+  approvedById         String?             @db.ObjectId
   approvedAt           DateTime?
-  createdById          String?             @db.Uuid
+  createdById          String?             @db.ObjectId
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
-  supplier   Supplier           @relation(fields: [supplierId], references: [id])
-  branch     Branch?            @relation(fields: [branchId], references: [id])
-  approvedBy User?              @relation("PurchaseOrderApprover", fields: [approvedById], references: [id])
-  createdBy  User?              @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  branch     Branch?             @relation(fields: [branchId], references: [id])
+  approvedBy User?               @relation("PurchaseOrderApprover", fields: [approvedById], references: [id])
+  createdBy  User?               @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
   items      PurchaseOrderItem[]
 
   @@index([supplierId])
@@ -534,11 +535,11 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id               String   @id @default(uuid()) @db.Uuid
-  purchaseOrderId  String   @db.Uuid
-  ingredientId     String   @db.Uuid
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  purchaseOrderId  String   @db.ObjectId
+  ingredientId     String   @db.ObjectId
   quantity         Float
-  unit             String   @db.VarChar(50)
+  unit             String
   unitPrice        Float
   totalPrice       Float
   receivedQuantity Float    @default(0)
@@ -557,16 +558,16 @@ model PurchaseOrderItem {
 // ─────────────────────────────────────────────────────────
 
 model DeliveryBatch {
-  id           String         @id @default(uuid()) @db.Uuid
-  batchNumber  String         @unique @db.VarChar(50)
-  dailyMenuId  String?        @db.Uuid
-  branchId     String?        @db.Uuid
-  assignedToId String?        @db.Uuid
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  batchNumber  String         @unique
+  dailyMenuId  String?        @db.ObjectId
+  branchId     String?        @db.ObjectId
+  assignedToId String?        @db.ObjectId
   status       DeliveryStatus @default(PENDING)
   scheduledAt  DateTime?
   startedAt    DateTime?
   completedAt  DateTime?
-  notes        String?        @db.Text
+  notes        String?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -582,14 +583,14 @@ model DeliveryBatch {
 }
 
 model DeliveryStop {
-  id              String         @id @default(uuid()) @db.Uuid
-  deliveryBatchId String         @db.Uuid
-  customerName    String         @db.VarChar(200)
-  address         String         @db.Text
-  phone           String?        @db.VarChar(20)
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  deliveryBatchId String         @db.ObjectId
+  customerName    String
+  address         String
+  phone           String?
   status          DeliveryStatus @default(PENDING)
   deliveredAt     DateTime?
-  failureReason   String?        @db.Text
+  failureReason   String?
   sortOrder       Int            @default(0)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -633,41 +634,41 @@ enum PayrollStatus {
 }
 
 model EmployeeProfile {
-  id                String          @id @default(uuid()) @db.Uuid
-  userId            String          @unique @db.Uuid
-  designation       String          @db.VarChar(100)
-  department        String          @db.VarChar(100)
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @unique @db.ObjectId
+  designation       String
+  department        String
   monthlySalary     Float
-  joiningDate       DateTime        @db.Date
-  bankName          String?         @db.VarChar(100)
-  bankAccountNumber String?         @db.VarChar(50)
-  ifscCode          String?         @db.VarChar(20)
-  isActive          Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  joiningDate       DateTime
+  bankName          String?
+  bankAccountNumber String?
+  ifscCode          String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payrolls          PayrollRecord[]
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payrolls PayrollRecord[]
 
   @@map("employee_profiles")
 }
 
 model PayrollRecord {
-  id                String        @id @default(uuid()) @db.Uuid
-  employeeProfileId String        @db.Uuid
-  payPeriod         String        @db.VarChar(20) // e.g. "2026-07"
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  employeeProfileId String        @db.ObjectId
+  payPeriod         String // e.g. "2026-07"
   basicSalary       Float
   bonus             Float         @default(0)
   deductions        Float         @default(0)
   netSalary         Float
   status            PayrollStatus @default(DRAFT)
   paidAt            DateTime?
-  transactionId     String?       @unique @db.Uuid
+  transactionId     String?       @unique @db.ObjectId
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
-  transaction       Transaction?    @relation(fields: [transactionId], references: [id])
+  employeeProfile EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  transaction     Transaction?    @relation(fields: [transactionId], references: [id])
 
   @@unique([employeeProfileId, payPeriod])
   @@index([employeeProfileId])
@@ -675,19 +676,19 @@ model PayrollRecord {
 }
 
 model Transaction {
-  id            String              @id @default(uuid()) @db.Uuid
+  id            String              @id @default(auto()) @map("_id") @db.ObjectId
   type          TransactionType
   category      TransactionCategory
   amount        Float
   status        TransactionStatus   @default(COMPLETED)
-  referenceId   String?             @db.Uuid
-  notes         String?             @db.Text
+  referenceId   String?             @db.ObjectId
+  notes         String?
   date          DateTime            @default(now())
-  performedById String?             @db.Uuid
+  performedById String?             @db.ObjectId
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
-  performedBy   User?               @relation("TransactionPerformer", fields: [performedById], references: [id])
+  performedBy   User?          @relation("TransactionPerformer", fields: [performedById], references: [id])
   payrollRecord PayrollRecord?
 
   @@index([type])
@@ -697,8 +698,9 @@ model Transaction {
 }
 
 model SystemSetting {
-  key   String @id @db.VarChar(100)
-  value String @db.Text
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  key   String @unique
+  value String
 
   @@map("system_settings")
 }
