@@ -1,0 +1,704 @@
+// Prisma Schema for SuperBento ERP
+// Phase 1: Authentication, Users, Roles, Permissions, Notifications, Audit Logs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  SYSTEM
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+  PASSWORD_RESET
+  ROLE_ASSIGNED
+  PERMISSION_CHANGED
+  ACTIVATED
+  DEACTIVATED
+  EXPORT
+  IMPORT
+}
+
+enum MenuStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum PrepTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RECEIVED
+  CANCELLED
+}
+
+enum StockMovementType {
+  PURCHASE_RECEIPT
+  KITCHEN_USAGE
+  ADJUSTMENT
+  WASTAGE
+  RETURN
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+}
+
+// ─────────────────────────────────────────────────────────
+// BRANCHES
+// ─────────────────────────────────────────────────────────
+
+model Branch {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @db.VarChar(200)
+  code      String    @unique @db.VarChar(50)
+  address   String?   @db.Text
+  city      String?   @db.VarChar(100)
+  state     String?   @db.VarChar(100)
+  pincode   String?   @db.VarChar(10)
+  phone     String?   @db.VarChar(20)
+  email     String?   @db.VarChar(255)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+
+  users           User[]
+  dailyMenus      DailyMenu[]
+  inventoryItems  InventoryItem[]
+  purchaseOrders  PurchaseOrder[]
+  deliveryBatches DeliveryBatch[]
+
+  @@map("branches")
+}
+
+// ─────────────────────────────────────────────────────────
+// PERMISSIONS
+// ─────────────────────────────────────────────────────────
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(200) // e.g. "users:read"
+  module      String   @db.VarChar(100) // e.g. "users"
+  action      String   @db.VarChar(100) // e.g. "read"
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+// ─────────────────────────────────────────────────────────
+// ROLES
+// ─────────────────────────────────────────────────────────
+
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(100)
+  slug        String    @unique @db.VarChar(100)
+  description String?   @db.Text
+  isSystem    Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?   @db.Uuid
+  updatedBy   String?   @db.Uuid
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+// ─────────────────────────────────────────────────────────
+// ROLE_PERMISSIONS (Join Table)
+// ─────────────────────────────────────────────────────────
+
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ─────────────────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────────────────
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique @db.VarChar(255)
+  phoneNumber     String?    @unique @db.VarChar(20)
+  passwordHash    String     @db.Text
+  firstName       String     @db.VarChar(100)
+  lastName        String     @db.VarChar(100)
+  avatarUrl       String?    @db.Text
+  status          UserStatus @default(ACTIVE)
+  isEmailVerified Boolean    @default(false)
+  lastLoginAt     DateTime?
+  roleId          String?    @db.Uuid
+  branchId        String?    @db.Uuid
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+  createdBy       String?    @db.Uuid
+  updatedBy       String?    @db.Uuid
+
+  role              Role?                @relation(fields: [roleId], references: [id])
+  branch            Branch?              @relation(fields: [branchId], references: [id])
+  refreshTokens     RefreshToken[]
+  notifications     Notification[]
+  passwordResets    PasswordResetToken[]
+  auditLogs         AuditLog[]           @relation("AuditLogActor")
+  assignedPrepTasks PrepTask[]           @relation("PrepTaskAssignee")
+  stockMovements    StockMovement[]      @relation("StockMovementPerformer")
+  purchaseOrders    PurchaseOrder[]      @relation("PurchaseOrderCreator")
+  approvedPOs       PurchaseOrder[]      @relation("PurchaseOrderApprover")
+  deliveryBatches   DeliveryBatch[]      @relation("DeliveryBatchAgent")
+  employeeProfile   EmployeeProfile?
+  transactions      Transaction[]        @relation("TransactionPerformer")
+
+  @@index([email])
+  @@index([roleId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────
+// REFRESH TOKENS
+// ─────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenFamily String    @db.Uuid // Used for rotation attack detection
+  tokenHash   String    @db.Text // Stored hashed, never plain
+  expiresAt   DateTime
+  isRevoked   Boolean   @default(false)
+  revokedAt   DateTime?
+  ipAddress   String?   @db.VarChar(50)
+  userAgent   String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenFamily])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────
+// PASSWORD RESET TOKENS
+// ─────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @db.Text
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ─────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @db.Uuid
+  title      String           @db.VarChar(255)
+  message    String           @db.Text
+  type       NotificationType @default(INFO)
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+  entityType String?          @db.VarChar(100)
+  entityId   String?          @db.Uuid
+  actionUrl  String?          @db.Text
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String?     @db.Uuid
+  action    AuditAction
+  entity    String      @db.VarChar(100)
+  entityId  String?     @db.Uuid
+  oldValues Json?
+  newValues Json?
+  ipAddress String?     @db.VarChar(50)
+  userAgent String?     @db.Text
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  actor User? @relation("AuditLogActor", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────
+// INGREDIENTS
+// ─────────────────────────────────────────────────────────
+
+model Ingredient {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(200)
+  unit        String    @db.VarChar(50) // e.g. kg, g, L, pcs
+  defaultCost Float?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  recipes          RecipeIngredient[]
+  inventoryItems   InventoryItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+
+  @@map("ingredients")
+}
+
+// ─────────────────────────────────────────────────────────
+// RECIPES
+// ─────────────────────────────────────────────────────────
+
+model Recipe {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @db.VarChar(200)
+  description     String?   @db.Text
+  instructions    String?   @db.Text
+  prepTimeMinutes Int?
+  cookTimeMinutes Int?
+  category        String?   @db.VarChar(100)
+  nutritionalInfo Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  ingredients RecipeIngredient[]
+  menuItems   MenuItem[]
+
+  @@map("recipes")
+}
+
+// ─────────────────────────────────────────────────────────
+// RECIPE INGREDIENTS (Join Table)
+// ─────────────────────────────────────────────────────────
+
+model RecipeIngredient {
+  recipeId     String @db.Uuid
+  ingredientId String @db.Uuid
+  quantity     Float
+  unit         String @db.VarChar(50)
+
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, ingredientId])
+  @@map("recipe_ingredients")
+}
+
+// ─────────────────────────────────────────────────────────
+// DAILY MENUS
+// ─────────────────────────────────────────────────────────
+
+model DailyMenu {
+  id        String     @id @default(uuid()) @db.Uuid
+  date      DateTime   @db.Date
+  branchId  String?    @db.Uuid
+  status    MenuStatus @default(DRAFT)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  branch          Branch?         @relation(fields: [branchId], references: [id])
+  items           MenuItem[]
+  prepTasks       PrepTask[]
+  deliveryBatches DeliveryBatch[]
+
+  @@index([date])
+  @@index([branchId])
+  @@map("daily_menus")
+}
+
+// ─────────────────────────────────────────────────────────
+// MENU ITEMS
+// ─────────────────────────────────────────────────────────
+
+model MenuItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  dailyMenuId    String   @db.Uuid
+  recipeId       String   @db.Uuid
+  mealType       MealType
+  targetQuantity Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  dailyMenu DailyMenu @relation(fields: [dailyMenuId], references: [id], onDelete: Cascade)
+  recipe    Recipe    @relation(fields: [recipeId], references: [id])
+
+  @@index([dailyMenuId])
+  @@map("menu_items")
+}
+
+// ─────────────────────────────────────────────────────────
+// PREP TASKS
+// ─────────────────────────────────────────────────────────
+
+model PrepTask {
+  id           String         @id @default(uuid()) @db.Uuid
+  dailyMenuId  String         @db.Uuid
+  assignedToId String?        @db.Uuid
+  taskName     String         @db.VarChar(255)
+  status       PrepTaskStatus @default(TODO)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  dailyMenu  DailyMenu @relation(fields: [dailyMenuId], references: [id], onDelete: Cascade)
+  assignedTo User?     @relation("PrepTaskAssignee", fields: [assignedToId], references: [id])
+
+  @@index([dailyMenuId])
+  @@index([assignedToId])
+  @@map("prep_tasks")
+}
+
+// ─────────────────────────────────────────────────────────
+// SUPPLIERS
+// ─────────────────────────────────────────────────────────
+
+model Supplier {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String    @db.VarChar(200)
+  contactPerson String?   @db.VarChar(200)
+  phone         String?   @db.VarChar(20)
+  email         String?   @db.VarChar(255)
+  address       String?   @db.Text
+  gstin         String?   @db.VarChar(20)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// ─────────────────────────────────────────────────────────
+// INVENTORY
+// ─────────────────────────────────────────────────────────
+
+model InventoryItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  ingredientId  String    @db.Uuid
+  branchId      String?   @db.Uuid
+  currentStock  Float     @default(0)
+  minStockLevel Float     @default(0)
+  unit          String    @db.VarChar(50)
+  lastUpdatedAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ingredient Ingredient      @relation(fields: [ingredientId], references: [id])
+  branch     Branch?         @relation(fields: [branchId], references: [id])
+  movements  StockMovement[]
+
+  @@unique([ingredientId, branchId])
+  @@index([ingredientId])
+  @@index([branchId])
+  @@map("inventory_items")
+}
+
+model StockMovement {
+  id              String            @id @default(uuid()) @db.Uuid
+  inventoryItemId String            @db.Uuid
+  type            StockMovementType
+  quantity        Float
+  note            String?           @db.Text
+  referenceId     String?           @db.Uuid
+  performedById   String?           @db.Uuid
+  createdAt       DateTime          @default(now())
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  performedBy   User?         @relation("StockMovementPerformer", fields: [performedById], references: [id])
+
+  @@index([inventoryItemId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+// ─────────────────────────────────────────────────────────
+// PURCHASE ORDERS
+// ─────────────────────────────────────────────────────────
+
+model PurchaseOrder {
+  id                   String              @id @default(uuid()) @db.Uuid
+  poNumber             String              @unique @db.VarChar(50)
+  supplierId           String              @db.Uuid
+  branchId             String?             @db.Uuid
+  status               PurchaseOrderStatus @default(DRAFT)
+  expectedDeliveryDate DateTime?           @db.Date
+  totalAmount          Float               @default(0)
+  notes                String?             @db.Text
+  approvedById         String?             @db.Uuid
+  approvedAt           DateTime?
+  createdById          String?             @db.Uuid
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  supplier   Supplier           @relation(fields: [supplierId], references: [id])
+  branch     Branch?            @relation(fields: [branchId], references: [id])
+  approvedBy User?              @relation("PurchaseOrderApprover", fields: [approvedById], references: [id])
+  createdBy  User?              @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
+  items      PurchaseOrderItem[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId  String   @db.Uuid
+  ingredientId     String   @db.Uuid
+  quantity         Float
+  unit             String   @db.VarChar(50)
+  unitPrice        Float
+  totalPrice       Float
+  receivedQuantity Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  ingredient    Ingredient    @relation(fields: [ingredientId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_items")
+}
+
+// ─────────────────────────────────────────────────────────
+// DELIVERY
+// ─────────────────────────────────────────────────────────
+
+model DeliveryBatch {
+  id           String         @id @default(uuid()) @db.Uuid
+  batchNumber  String         @unique @db.VarChar(50)
+  dailyMenuId  String?        @db.Uuid
+  branchId     String?        @db.Uuid
+  assignedToId String?        @db.Uuid
+  status       DeliveryStatus @default(PENDING)
+  scheduledAt  DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  notes        String?        @db.Text
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  dailyMenu  DailyMenu?     @relation(fields: [dailyMenuId], references: [id])
+  branch     Branch?        @relation(fields: [branchId], references: [id])
+  assignedTo User?          @relation("DeliveryBatchAgent", fields: [assignedToId], references: [id])
+  stops      DeliveryStop[]
+
+  @@index([dailyMenuId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("delivery_batches")
+}
+
+model DeliveryStop {
+  id              String         @id @default(uuid()) @db.Uuid
+  deliveryBatchId String         @db.Uuid
+  customerName    String         @db.VarChar(200)
+  address         String         @db.Text
+  phone           String?        @db.VarChar(20)
+  status          DeliveryStatus @default(PENDING)
+  deliveredAt     DateTime?
+  failureReason   String?        @db.Text
+  sortOrder       Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  deliveryBatch DeliveryBatch @relation(fields: [deliveryBatchId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryBatchId])
+  @@map("delivery_stops")
+}
+
+// ─────────────────────────────────────────────────────────
+// BUSINESS - FINANCE, HR & PAYROLL ENUMS & MODELS
+// ─────────────────────────────────────────────────────────
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionCategory {
+  SALARY
+  INGREDIENT_PURCHASE
+  RENT
+  UTILITIES
+  MARKETING
+  CUSTOMER_BILLING
+  OTHER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+model EmployeeProfile {
+  id                String          @id @default(uuid()) @db.Uuid
+  userId            String          @unique @db.Uuid
+  designation       String          @db.VarChar(100)
+  department        String          @db.VarChar(100)
+  monthlySalary     Float
+  joiningDate       DateTime        @db.Date
+  bankName          String?         @db.VarChar(100)
+  bankAccountNumber String?         @db.VarChar(50)
+  ifscCode          String?         @db.VarChar(20)
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payrolls          PayrollRecord[]
+
+  @@map("employee_profiles")
+}
+
+model PayrollRecord {
+  id                String        @id @default(uuid()) @db.Uuid
+  employeeProfileId String        @db.Uuid
+  payPeriod         String        @db.VarChar(20) // e.g. "2026-07"
+  basicSalary       Float
+  bonus             Float         @default(0)
+  deductions        Float         @default(0)
+  netSalary         Float
+  status            PayrollStatus @default(DRAFT)
+  paidAt            DateTime?
+  transactionId     String?       @unique @db.Uuid
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  transaction       Transaction?    @relation(fields: [transactionId], references: [id])
+
+  @@unique([employeeProfileId, payPeriod])
+  @@index([employeeProfileId])
+  @@map("payroll_records")
+}
+
+model Transaction {
+  id            String              @id @default(uuid()) @db.Uuid
+  type          TransactionType
+  category      TransactionCategory
+  amount        Float
+  status        TransactionStatus   @default(COMPLETED)
+  referenceId   String?             @db.Uuid
+  notes         String?             @db.Text
+  date          DateTime            @default(now())
+  performedById String?             @db.Uuid
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  performedBy   User?               @relation("TransactionPerformer", fields: [performedById], references: [id])
+  payrollRecord PayrollRecord?
+
+  @@index([type])
+  @@index([category])
+  @@index([date])
+  @@map("transactions")
+}
+
+model SystemSetting {
+  key   String @id @db.VarChar(100)
+  value String @db.Text
+
+  @@map("system_settings")
+}
