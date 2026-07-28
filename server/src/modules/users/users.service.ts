@@ -40,19 +40,19 @@ export class UsersService {
   // ─── CREATE ───────────────────────────────────────────
   async create(dto: CreateUserDto, createdById: string) {
     const existing = await this.prisma.user.findFirst({
-      where: { email: dto.email.toLowerCase(), deletedAt: null },
+      where: { email: dto.email.toLowerCase(), deletedAt: { isSet: false } },
     });
     if (existing) {
       throw new ConflictException('A user with this email already exists');
     }
 
     if (dto.roleId) {
-      const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, deletedAt: null } });
+      const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, deletedAt: { isSet: false } } });
       if (!role) throw new BadRequestException('Invalid role specified');
     }
 
     if (dto.branchId) {
-      const branch = await this.prisma.branch.findFirst({ where: { id: dto.branchId, deletedAt: null } });
+      const branch = await this.prisma.branch.findFirst({ where: { id: dto.branchId, deletedAt: { isSet: false } } });
       if (!branch) throw new BadRequestException('Invalid branch specified');
     }
 
@@ -82,7 +82,7 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
-      deletedAt: null,
+      deletedAt: { isSet: false },
       ...(status && { status }),
       ...(roleId && { roleId }),
       ...(branchId && { branchId }),
@@ -113,7 +113,7 @@ export class UsersService {
   // ─── FIND ONE ─────────────────────────────────────────
   async findOne(id: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: { isSet: false } },
       select: USER_SELECT,
     });
     if (!user) throw new NotFoundException('User not found');
@@ -125,7 +125,7 @@ export class UsersService {
     await this.findOne(id); // Ensure exists
 
     if (dto.roleId) {
-      const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, deletedAt: null } });
+      const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, deletedAt: { isSet: false } } });
       if (!role) throw new BadRequestException('Invalid role specified');
     }
 
@@ -189,7 +189,7 @@ export class UsersService {
   // ─── ASSIGN ROLE ──────────────────────────────────────
   async assignRole(id: string, dto: AssignRoleDto, updatedById: string) {
     await this.findOne(id);
-    const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, deletedAt: null } });
+    const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, deletedAt: { isSet: false } } });
     if (!role) throw new BadRequestException('Invalid role specified');
 
     return this.prisma.user.update({
@@ -225,12 +225,12 @@ export class UsersService {
   // ─── STATS ────────────────────────────────────────────
   async getStats() {
     const [total, active, inactive, newThisMonth] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null } }),
-      this.prisma.user.count({ where: { deletedAt: null, status: UserStatus.ACTIVE } }),
-      this.prisma.user.count({ where: { deletedAt: null, status: UserStatus.INACTIVE } }),
+      this.prisma.user.count({ where: { deletedAt: { isSet: false } } }),
+      this.prisma.user.count({ where: { deletedAt: { isSet: false }, status: UserStatus.ACTIVE } }),
+      this.prisma.user.count({ where: { deletedAt: { isSet: false }, status: UserStatus.INACTIVE } }),
       this.prisma.user.count({
         where: {
-          deletedAt: null,
+          deletedAt: { isSet: false },
           createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
         },
       }),

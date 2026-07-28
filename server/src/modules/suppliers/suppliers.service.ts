@@ -10,7 +10,7 @@ export class SuppliersService {
   async findAll(params?: { search?: string; isActive?: boolean }) {
     return this.prisma.supplier.findMany({
       where: {
-        deletedAt: null,
+        deletedAt: { isSet: false },
         ...(params?.isActive !== undefined && { isActive: params.isActive }),
         ...(params?.search && {
           OR: [
@@ -26,7 +26,7 @@ export class SuppliersService {
 
   async findOne(id: string) {
     const supplier = await this.prisma.supplier.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: { isSet: false } },
       include: {
         purchaseOrders: {
           where: { status: { not: 'CANCELLED' } },
@@ -51,13 +51,13 @@ export class SuppliersService {
   }
 
   async update(id: string, dto: UpdateSupplierDto) {
-    const supplier = await this.prisma.supplier.findFirst({ where: { id, deletedAt: null } });
+    const supplier = await this.prisma.supplier.findFirst({ where: { id, deletedAt: { isSet: false } } });
     if (!supplier) throw new NotFoundException(`Supplier ${id} not found`);
     return this.prisma.supplier.update({ where: { id }, data: dto });
   }
 
   async remove(id: string) {
-    const supplier = await this.prisma.supplier.findFirst({ where: { id, deletedAt: null } });
+    const supplier = await this.prisma.supplier.findFirst({ where: { id, deletedAt: { isSet: false } } });
     if (!supplier) throw new NotFoundException(`Supplier ${id} not found`);
     return this.prisma.supplier.update({
       where: { id },

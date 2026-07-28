@@ -8,7 +8,7 @@ export class IngredientsService {
 
   async findAll() {
     return this.prisma.ingredient.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: { isSet: false } },
       orderBy: { name: 'asc' },
     });
   }

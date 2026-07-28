@@ -33,14 +33,14 @@ export class SettingsService {
 
   async findBranches() {
     return this.prisma.branch.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: { isSet: false } },
       orderBy: { name: 'asc' },
     });
   }
 
   async createBranch(dto: CreateBranchDto, userId: string) {
     const existing = await this.prisma.branch.findFirst({
-      where: { code: dto.code, deletedAt: null },
+      where: { code: dto.code, deletedAt: { isSet: false } },
     });
     if (existing) throw new ConflictException(`Branch code ${dto.code} already exists`);
 
@@ -62,13 +62,13 @@ export class SettingsService {
 
   async updateBranch(id: string, dto: Partial<CreateBranchDto>, userId: string) {
     const branch = await this.prisma.branch.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: { isSet: false } },
     });
     if (!branch) throw new NotFoundException(`Branch ${id} not found`);
 
     if (dto.code && dto.code !== branch.code) {
       const codeExists = await this.prisma.branch.findFirst({
-        where: { code: dto.code, deletedAt: null },
+        where: { code: dto.code, deletedAt: { isSet: false } },
       });
       if (codeExists) throw new ConflictException(`Branch code ${dto.code} is already in use`);
     }
@@ -84,7 +84,7 @@ export class SettingsService {
 
   async removeBranch(id: string) {
     const branch = await this.prisma.branch.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: { isSet: false } },
     });
     if (!branch) throw new NotFoundException(`Branch ${id} not found`);
 

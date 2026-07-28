@@ -42,7 +42,7 @@ export class JwtAuthGuard implements CanActivate {
 
     // Load user + permissions from DB
     const user = await this.prisma.user.findFirst({
-      where: { id: payload.sub, deletedAt: null },
+      where: { id: payload.sub, deletedAt: { isSet: false } },
       include: {
         role: {
           include: {

@@ -136,7 +136,7 @@ export class AuthService {
 
     // Get user for new token
     const user = await this.prisma.user.findFirst({
-      where: { id: payload.sub, deletedAt: null },
+      where: { id: payload.sub, deletedAt: { isSet: false } },
       include: { role: true },
     });
 
@@ -174,7 +174,7 @@ export class AuthService {
   // ─── FORGOT PASSWORD ──────────────────────────────────
   async forgotPassword(dto: ForgotPasswordDto) {
     const user = await this.prisma.user.findFirst({
-      where: { email: dto.email.toLowerCase(), deletedAt: null },
+      where: { email: dto.email.toLowerCase(), deletedAt: { isSet: false } },
     });
 
     // Always return success to prevent email enumeration
@@ -245,7 +245,7 @@ export class AuthService {
   // ─── CHANGE PASSWORD ──────────────────────────────────
   async changePassword(userId: string, dto: ChangePasswordDto, ipAddress?: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
+      where: { id: userId, deletedAt: { isSet: false } },
     });
 
     if (!user) throw new NotFoundException('User not found');
@@ -281,7 +281,7 @@ export class AuthService {
   // ─── GET PROFILE ──────────────────────────────────────
   async getProfile(userId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
+      where: { id: userId, deletedAt: { isSet: false } },
       include: {
         role: {
           include: { permissions: { include: { permission: true } } },

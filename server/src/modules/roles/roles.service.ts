@@ -14,7 +14,7 @@ export class RolesService {
 
   async findAll() {
     const roles = await this.prisma.role.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: { isSet: false } },
       include: {
         _count: { select: { users: true, permissions: true } },
         permissions: {
@@ -35,7 +35,7 @@ export class RolesService {
 
   async findOne(id: string) {
     const role = await this.prisma.role.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: { isSet: false } },
       include: {
         permissions: { include: { permission: true } },
         _count: { select: { users: true } },
@@ -54,7 +54,7 @@ export class RolesService {
 
   async create(dto: CreateRoleDto, createdById: string) {
     const existing = await this.prisma.role.findFirst({
-      where: { OR: [{ name: dto.name }, { slug: dto.slug }], deletedAt: null },
+      where: { OR: [{ name: dto.name }, { slug: dto.slug }], deletedAt: { isSet: false } },
     });
     if (existing) {
       throw new ConflictException('A role with this name or slug already exists');
@@ -80,7 +80,7 @@ export class RolesService {
 
     if (dto.slug && dto.slug !== role.slug) {
       const existing = await this.prisma.role.findFirst({
-        where: { slug: dto.slug, deletedAt: null, NOT: { id } },
+        where: { slug: dto.slug, deletedAt: { isSet: false }, NOT: { id } },
       });
       if (existing) throw new ConflictException('A role with this slug already exists');
     }

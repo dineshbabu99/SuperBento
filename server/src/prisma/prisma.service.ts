@@ -45,16 +45,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           params.action = 'findFirst';
           params.args.where = {
             ...params.args.where,
-            deletedAt: null,
+            deletedAt: { isSet: false },
           };
         }
         if (params.action === 'findMany') {
           if (params.args.where !== undefined) {
             if (params.args.where.deletedAt === undefined) {
-              params.args.where = { ...params.args.where, deletedAt: null };
+              params.args.where = { ...params.args.where, deletedAt: { isSet: false } };
             }
           } else {
-            params.args['where'] = { deletedAt: null };
+            params.args['where'] = { deletedAt: { isSet: false } };
           }
         }
       }
