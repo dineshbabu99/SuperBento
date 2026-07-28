@@ -1,6 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 const prisma = new PrismaClient();
 
