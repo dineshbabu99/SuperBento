@@ -40,34 +40,14 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired access token');
     }
 
-    // Load user + permissions from DB
-    const user = await this.prisma.user.findFirst({
-      where: { id: payload.sub, deletedAt: { isSet: false } },
-      include: {
-        role: {
-          include: {
-            permissions: {
-              include: { permission: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (!user || user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('User not found or inactive');
-    }
-
-    const permissions = user.role?.permissions.map((rp) => rp.permission.name) ?? [];
-
     const requestUser: RequestUser = {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      roleId: user.roleId,
-      roleSlug: user.role?.slug ?? null,
-      permissions,
+      id: payload.sub,
+      email: payload.email,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      roleId: payload.roleId,
+      roleSlug: payload.roleSlug,
+      permissions: payload.permissions || [],
     };
 
     (request as unknown as Record<string, unknown>).user = requestUser;

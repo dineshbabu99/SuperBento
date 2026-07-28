@@ -67,7 +67,8 @@ export class AuthService {
 
     // Create token family for refresh token rotation
     const family = uuidv4();
-    const tokens = await this.generateTokenPair(user.id, user.email, user.roleId, user.role?.slug ?? null, family);
+    const permissions = user.role?.permissions.map((rp) => rp.permission.name) ?? [];
+    const tokens = await this.generateTokenPair(user.id, user.email, user.firstName, user.lastName, user.roleId, user.role?.slug ?? null, family, permissions);
 
     // Store hashed refresh token
     await this.storeRefreshToken(user.id, tokens.refreshToken, family, ipAddress, userAgent);
@@ -145,7 +146,8 @@ export class AuthService {
     }
 
     // Issue new token pair (same family for rotation chain)
-    const tokens = await this.generateTokenPair(user.id, user.email, user.roleId, user.role?.slug ?? null, payload.family);
+    const permissions = user.role?.permissions.map((rp) => rp.permission.name) ?? [];
+    const tokens = await this.generateTokenPair(user.id, user.email, user.firstName, user.lastName, user.roleId, user.role?.slug ?? null, payload.family, permissions);
     await this.storeRefreshToken(user.id, tokens.refreshToken, payload.family, ipAddress, userAgent);
 
     return tokens;
@@ -326,11 +328,14 @@ export class AuthService {
   private async generateTokenPair(
     userId: string,
     email: string,
+    firstName: string,
+    lastName: string,
     roleId: string | null,
     roleSlug: string | null,
     family: string,
+    permissions: string[],
   ) {
-    const accessPayload: JwtPayload = { sub: userId, email, roleId, roleSlug };
+    const accessPayload: JwtPayload = { sub: userId, email, firstName, lastName, roleId, roleSlug, permissions };
     const refreshPayload: RefreshTokenPayload = { sub: userId, family };
 
     const [accessToken, refreshToken] = await Promise.all([
