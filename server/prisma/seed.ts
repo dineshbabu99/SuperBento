@@ -2,13 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
-import * as dotenv from 'dotenv';
-dotenv.config();
-
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 // ─────────────────────────────────────────────────────────
 // SYSTEM ROLES
@@ -271,7 +265,7 @@ async function main() {
   await prisma.rolePermission.deleteMany({ where: { roleId: superAdminId } });
   await prisma.rolePermission.createMany({
     data: allPermissions.map((p) => ({ roleId: superAdminId, permissionId: p.id })),
-    skipDuplicates: true,
+
   });
   console.log(`  ✓ super-admin: ${allPermissions.length} permissions`);
 
@@ -289,7 +283,7 @@ async function main() {
     if (permIds.length > 0) {
       await prisma.rolePermission.createMany({
         data: permIds.map((permissionId) => ({ roleId, permissionId })),
-        skipDuplicates: true,
+    
       });
     }
     console.log(`  ✓ ${roleSlug}: ${permIds.length} permissions`);

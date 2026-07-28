@@ -3,7 +3,7 @@ services:
     name: superbento-api
     env: node
     rootDir: server
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
